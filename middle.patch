@@ -1,0 +1,79 @@
+From 9ba9cc2923e0c79c46d69cd9a181608f74aead6f Mon Sep 17 00:00:00 2001
+From: Jens John <dev@2ion.de>
+Date: Thu, 5 Mar 2015 17:24:30 +0100
+Subject: [PATCH 1/1] -m patch for Xinerama and non-Xinerama
+
+---
+ dmenu.c | 22 ++++++++++++++++++----
+ 1 file changed, 18 insertions(+), 4 deletions(-)
+
+diff --git a/dmenu.c b/dmenu.c
+index 4ea95f8..b9f97a2 100644
+--- a/dmenu.c
++++ b/dmenu.c
+@@ -24,6 +24,8 @@ struct Item {
+ 	Item *left, *right;
+ };
+ 
++enum { Top, Middle, Bottom }; /* bar position */
++
+ static void appenditem(Item *item, Item **list, Item **last);
+ static void calcoffsets(void);
+ static char *cistrstr(const char *s, const char *sub);
+@@ -53,7 +55,7 @@ static unsigned int lines = 0;
+ static unsigned long normcol[ColLast];
+ static unsigned long selcol[ColLast];
+ static Atom clip, utf8;
+-static Bool topbar = True;
++static int position = Top;
+ static DC *dc;
+ static Item *items = NULL;
+ static Item *matches, *matchend;
+@@ -76,13 +78,16 @@ main(int argc, char *argv[]) {
+ 			exit(EXIT_SUCCESS);
+ 		}
+ 		else if(!strcmp(argv[i], "-b"))   /* appears at the bottom of the screen */
+-			topbar = False;
++			position = Bottom;
+ 		else if(!strcmp(argv[i], "-f"))   /* grabs keyboard before reading stdin */
+ 			fast = True;
+ 		else if(!strcmp(argv[i], "-i")) { /* case-insensitive item matching */
+ 			fstrncmp = strncasecmp;
+ 			fstrstr = cistrstr;
+ 		}
++    else if (!strcmp(argv[i], "-m")) { /* appears in the middle of the screen */
++      position = Middle;
++    }
+ 		else if(i+1 == argc)
+ 			usage();
+ 		/* these options take one argument */
+@@ -565,7 +570,12 @@ setup(void) {
+ 					break;
+ 
+ 		x = info[i].x_org;
+-		y = info[i].y_org + (topbar ? 0 : info[i].height - mh);
++		y = info[i].y_org;
++    switch(position) {
++      case Top:     y += 0;                             break;
++      case Bottom:  y += info[i].height - mh;           break;
++      case Middle:  y += 0.5 * (info[i].height - mh);   break;
++    }
+ 		mw = info[i].width;
+ 		XFree(info);
+ 	}
+@@ -573,7 +583,11 @@ setup(void) {
+ #endif
+ 	{
+ 		x = 0;
+-		y = topbar ? 0 : DisplayHeight(dc->dpy, screen) - mh;
++    switch(position) {
++      case Top:     y = 0;                                            break;
++      case Bottom:  y = DisplayHeight(dc->dpy, screen) - mh;          break;
++      case Middle:  y = 0.5 * (DisplayHeight(dc->dpy, screen) - mh);  break;
++    }
+ 		mw = DisplayWidth(dc->dpy, screen);
+ 	}
+ 	promptw = prompt ? textw(dc, prompt) : 0;
+-- 
+2.1.4
+

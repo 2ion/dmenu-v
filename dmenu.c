@@ -24,6 +24,8 @@ struct Item {
 	Item *left, *right;
 };
 
+enum { Top, Middle, Bottom }; /* bar position */
+
 static void appenditem(Item *item, Item **list, Item **last);
 static void calcoffsets(void);
 static char *cistrstr(const char *s, const char *sub);
@@ -53,7 +55,7 @@ static unsigned int lines = 0;
 static unsigned long normcol[ColLast];
 static unsigned long selcol[ColLast];
 static Atom clip, utf8;
-static Bool topbar = True;
+static int position = Top;
 static DC *dc;
 static Item *items = NULL;
 static Item *matches, *matchend;
@@ -76,13 +78,16 @@ main(int argc, char *argv[]) {
 			exit(EXIT_SUCCESS);
 		}
 		else if(!strcmp(argv[i], "-b"))   /* appears at the bottom of the screen */
-			topbar = False;
+			position = Bottom;
 		else if(!strcmp(argv[i], "-f"))   /* grabs keyboard before reading stdin */
 			fast = True;
 		else if(!strcmp(argv[i], "-i")) { /* case-insensitive item matching */
 			fstrncmp = strncasecmp;
 			fstrstr = cistrstr;
 		}
+    else if (!strcmp(argv[i], "-m")) { /* appears in the middle of the screen */
+      position = Middle;
+    }
 		else if(i+1 == argc)
 			usage();
 		/* these options take one argument */
@@ -565,7 +570,12 @@ setup(void) {
 					break;
 
 		x = info[i].x_org;
-		y = info[i].y_org + (topbar ? 0 : info[i].height - mh);
+		y = info[i].y_org;
+    switch(position) {
+      case Top:     y += 0;                             break;
+      case Bottom:  y += info[i].height - mh;           break;
+      case Middle:  y += 0.5 * (info[i].height - mh);   break;
+    }
 		mw = info[i].width;
 		XFree(info);
 	}
@@ -573,7 +583,11 @@ setup(void) {
 #endif
 	{
 		x = 0;
-		y = topbar ? 0 : DisplayHeight(dc->dpy, screen) - mh;
+    switch(position) {
+      case Top:     y = 0;                                            break;
+      case Bottom:  y = DisplayHeight(dc->dpy, screen) - mh;          break;
+      case Middle:  y = 0.5 * (DisplayHeight(dc->dpy, screen) - mh);  break;
+    }
 		mw = DisplayWidth(dc->dpy, screen);
 	}
 	promptw = prompt ? textw(dc, prompt) : 0;

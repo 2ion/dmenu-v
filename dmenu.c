@@ -606,7 +606,7 @@ setup(void) {
 	/* create menu window */
 	swa.override_redirect = True;
 	swa.background_pixel = normcol[ColBG];
-	swa.event_mask = ExposureMask | KeyPressMask | VisibilityChangeMask;
+	swa.event_mask = ExposureMask | KeyPressMask | VisibilityChangeMask | ButtonPressMask;
 	win = XCreateWindow(dc->dpy, root, x, y, mw, mh, 0,
 	                    DefaultDepth(dc->dpy, screen), CopyFromParent,
 	                    DefaultVisual(dc->dpy, screen),

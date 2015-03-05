@@ -24,7 +24,7 @@ struct Item {
 	Item *left, *right;
 };
 
-enum { Top, Middle, Bottom }; /* bar position */
+enum { Top, TopQuarter, Middle, Bottom }; /* bar position */
 
 static void appenditem(Item *item, Item **list, Item **last);
 static void calcoffsets(void);
@@ -87,6 +87,9 @@ main(int argc, char *argv[]) {
 		}
     else if (!strcmp(argv[i], "-m")) { /* appears in the middle of the screen */
       position = Middle;
+    }
+    else if (!strcmp(argv[i], "-q")) { /* appears in the upper quarter of the screen */
+      position = TopQuarter;
     }
 		else if(i+1 == argc)
 			usage();
@@ -572,9 +575,10 @@ setup(void) {
 		x = info[i].x_org;
 		y = info[i].y_org;
     switch(position) {
-      case Top:     y += 0;                             break;
-      case Bottom:  y += info[i].height - mh;           break;
-      case Middle:  y += 0.5 * (info[i].height - mh);   break;
+      case Top:         y += 0;                                 break;
+      case TopQuarter:  y += 0.5 * (0.5 * info[i].height - mh); break;
+      case Bottom:      y += info[i].height - mh;               break;
+      case Middle:      y += 0.5 * (info[i].height - mh);       break;
     }
 		mw = info[i].width;
 		XFree(info);
@@ -584,9 +588,10 @@ setup(void) {
 	{
 		x = 0;
     switch(position) {
-      case Top:     y = 0;                                            break;
-      case Bottom:  y = DisplayHeight(dc->dpy, screen) - mh;          break;
-      case Middle:  y = 0.5 * (DisplayHeight(dc->dpy, screen) - mh);  break;
+      case Top:         y = 0;                                                  break;
+      case TopQuarter:  y = 0.5 * (0.5 * DisplayHeight(dc->dpy, screen) - mh);  break;
+      case Bottom:      y = DisplayHeight(dc->dpy, screen) - mh;                break;
+      case Middle:      y = 0.5 * (DisplayHeight(dc->dpy, screen) - mh);        break;
     }
 		mw = DisplayWidth(dc->dpy, screen);
 	}

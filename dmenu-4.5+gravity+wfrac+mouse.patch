@@ -1,0 +1,249 @@
+--- dmenu-4.5/dmenu.c	2015-03-06 12:51:22.816334421 +0100
++++ dmenu-4.99/dmenu.c	2015-03-06 12:53:13.016330400 +0100
+@@ -24,7 +24,11 @@
+   Item *left, *right;
+ };
+ 
++enum { Top, TopQuarter, Middle, BottomQuarter, Bottom,
++  Left, Center, Right }; /* bar position */
++
+ static void appenditem(Item *item, Item **list, Item **last);
++static void buttonpress(XEvent *e);
+ static void calcoffsets(void);
+ static char *cistrstr(const char *s, const char *sub);
+ static void drawmenu(void);
+@@ -42,6 +46,9 @@
+ static char text[BUFSIZ] = "";
+ static int bh, mw, mh;
+ static int inputw, promptw;
++static int position = Top;
++static int alignment = Left;
++static float wfrac = 1.0;
+ static size_t cursor = 0;
+ static const char *font = NULL;
+ static const char *prompt = NULL;
+@@ -53,7 +60,6 @@
+ static unsigned long normcol[ColLast];
+ static unsigned long selcol[ColLast];
+ static Atom clip, utf8;
+-static Bool topbar = True;
+ static DC *dc;
+ static Item *items = NULL;
+ static Item *matches, *matchend;
+@@ -76,7 +82,7 @@
+       exit(EXIT_SUCCESS);
+     }
+     else if(!strcmp(argv[i], "-b"))   /* appears at the bottom of the screen */
+-      topbar = False;
++      position = Bottom;
+     else if(!strcmp(argv[i], "-f"))   /* grabs keyboard before reading stdin */
+       fast = True;
+     else if(!strcmp(argv[i], "-i")) { /* case-insensitive item matching */
+@@ -92,6 +98,20 @@
+       prompt = argv[++i];
+     else if(!strcmp(argv[i], "-fn"))  /* font or font set */
+       font = argv[++i];
++    else if(!strcmp(argv[i], "-g")) { /* gravity */
++      char *a = argv[++i];
++      switch(a[0]) {
++        case 't': position = Top;           break;
++        case 'T': position = TopQuarter;    break;
++        case 'm': position = Middle;        break;
++        case 'B': position = BottomQuarter; break;
++        case 'b': position = Bottom;        break;
++      } switch(a[1]) {
++        case 'l': alignment = Left;         break;
++        case 'c': alignment = Center;       break;
++        case 'r': alignment = Right;        break;
++      }
++    }
+     else if(!strcmp(argv[i], "-nb"))  /* normal background color */
+       normbgcolor = argv[++i];
+     else if(!strcmp(argv[i], "-nf"))  /* normal foreground color */
+@@ -100,6 +120,8 @@
+       selbgcolor = argv[++i];
+     else if(!strcmp(argv[i], "-sf"))  /* selected foreground color */
+       selfgcolor = argv[++i];
++    else if(!strcmp(argv[i], "-w"))   /* set menu width to a fraction */
++      wfrac = strtof(argv[++i], NULL);
+     else
+       usage();
+ 
+@@ -494,6 +516,9 @@
+     if(XFilterEvent(&ev, win))
+       continue;
+     switch(ev.type) {
++    case ButtonPress:
++      buttonpress(&ev);
++      break;
+     case Expose:
+       if(ev.xexpose.count == 0)
+         mapdc(dc, win, mw, mh);
+@@ -564,17 +589,39 @@
+         if(INTERSECT(x, y, 1, 1, info[i]))
+           break;
+ 
++    mw = info[i].width * wfrac;
+     x = info[i].x_org;
+-    y = info[i].y_org + (topbar ? 0 : info[i].height - mh);
+-    mw = info[i].width;
++    switch(alignment) {
++      case Left:    x += 0;                           break;
++      case Center:  x += 0.5 * (info[i].width - mw);  break;
++      case Right:   x += info[i].width - mw;          break;
++    }
++    y = info[i].y_org;
++    switch(position) {
++      case Top:           y += 0;                                 break;
++      case TopQuarter:    y += 0.5 * (0.5 * info[i].height - mh); break;
++      case Middle:        y += 0.5 * (info[i].height - mh);       break;
++      case BottomQuarter: y += 0.5 * (1.5 * info[i].height - mh); break;
++      case Bottom:        y += info[i].height - mh;               break;
++    }
+     XFree(info);
+   }
+   else
+ #endif
+   {
+-    x = 0;
+-    y = topbar ? 0 : DisplayHeight(dc->dpy, screen) - mh;
+-    mw = DisplayWidth(dc->dpy, screen);
++    mw = DisplayWidth(dc->dpy, screen) * wfrac;
++    switch(alignment) {
++      case Left:    x = 0;                                          break;
++      case Center:  x = 0.5 * (DisplayWidth(dc->dpy, screen) - mw); break;
++      case Right:   x = DisplayWidth(dc->dpy, screen) - mw;         break;
++    }
++    switch(position) {
++      case Top:           y = 0;                                                  break;
++      case TopQuarter:    y = 0.5 * (0.5 * DisplayHeight(dc->dpy, screen) - mh);  break;
++      case Middle:        y = 0.5 * (DisplayHeight(dc->dpy, screen) - mh);        break;
++      case BottomQuarter: y = 0.5 * (1.5 * DisplayHeight(dc->dpy, screen) - mh);  break;
++      case Bottom:        y = DisplayHeight(dc->dpy, screen) - mh;                break;
++    }
+   }
+   promptw = prompt ? textw(dc, prompt) : 0;
+   inputw = MIN(inputw, mw/3);
+@@ -583,7 +630,7 @@
+   /* create menu window */
+   swa.override_redirect = True;
+   swa.background_pixel = normcol[ColBG];
+-  swa.event_mask = ExposureMask | KeyPressMask | VisibilityChangeMask;
++  swa.event_mask = ExposureMask | KeyPressMask | VisibilityChangeMask | ButtonPressMask;
+   win = XCreateWindow(dc->dpy, root, x, y, mw, mh, 0,
+                       DefaultDepth(dc->dpy, screen), CopyFromParent,
+                       DefaultVisual(dc->dpy, screen),
+@@ -601,7 +648,111 @@
+ 
+ void
+ usage(void) {
+-  fputs("usage: dmenu [-b] [-f] [-i] [-l lines] [-p prompt] [-fn font]\n"
+-        "             [-nb color] [-nf color] [-sb color] [-sf color] [-v]\n", stderr);
++  fputs("usage: dmenu [-b] [-f] [-g grav] [-i] [-l lines] [-p prompt] [-fn font]\n"
++        "             [-nb color] [-nf color] [-sb color] [-sf color] [-v] [-w frac]\n", stderr);
+   exit(EXIT_FAILURE);
+ }
++
++void
++buttonpress(XEvent *e) {
++  int curpos;
++  Item *item;
++  XButtonPressedEvent *ev = &e->xbutton;
++
++  if(ev->window != win)
++    return;
++
++  /* right-click: exit */
++  if(ev->button == Button3)
++    exit(EXIT_FAILURE);
++
++  dc->x = 0;
++  dc->y = 0;
++  dc->h = bh;
++
++  if(prompt && *prompt) {
++    dc->w = promptw;
++    dc->x = dc->w;
++  }
++  /* input field */
++  dc->w = (lines > 0 || !matches) ? mw - dc->x : inputw;
++  if((curpos = textnw(dc, text, cursor) + dc->h/2 - 2) < dc->w);
++
++  /* left-click on input: clear input,
++   * NOTE: if there is no left-arrow the space for < is reserved so
++   *       add that to the input width */
++  if(ev->button == Button1 &&
++     ((lines <= 0 && ev->x >= 0 && ev->x <= dc->x + dc->w +
++     ((!prev || !curr->left) ? textw(dc, "<") : 0)) ||
++     (lines > 0 && ev->y >= dc->y && ev->y <= dc->y + dc->h))) {
++    insert(NULL, 0 - cursor);
++    drawmenu();
++    return;
++  }
++  /* middle-mouse click: paste selection */
++  if(ev->button == Button2) {
++    XConvertSelection(dc->dpy, (ev->state & ShiftMask) ? clip : XA_PRIMARY,
++                      utf8, utf8, win, CurrentTime);
++    drawmenu();
++    return;
++  }
++  /* scroll up */
++  if(ev->button == Button4 && prev) {
++    sel = curr = prev;
++    calcoffsets();
++    drawmenu();
++    return;
++  }
++  /* scroll down */
++  if(ev->button == Button5 && next) {
++    sel = curr = next;
++    calcoffsets();
++    drawmenu();
++    return;
++  }
++  if(ev->button != Button1)
++    return;
++  if(lines > 0) {
++    /* vertical list: left-click on item */
++    dc->w = mw - dc->x;
++    for(item = curr; item != next; item = item->right) {
++      dc->y += dc->h;
++      if(ev->y >= dc->y && ev->y <= (dc->y + dc->h)) {
++        puts(item->text);
++        exit(EXIT_SUCCESS);
++      }
++    }
++  }
++  else if(matches) {
++    /* left-click on left arrow */
++    dc->x += inputw;
++    dc->w = textw(dc, "<");
++    if(prev && curr->left) {
++      if(ev->x >= dc->x && ev->x <= dc->x + dc->w) {
++        sel = curr = prev;
++        calcoffsets();
++        drawmenu();
++        return;
++      }
++    }
++    /* horizontal list: left-click on item */
++    for(item = curr; item != next; item = item->right) {
++      dc->x += dc->w;
++      dc->w = MIN(textw(dc, item->text), mw - dc->x - textw(dc, ">"));
++      if(ev->x >= dc->x && ev->x <= (dc->x + dc->w)) {
++        puts(item->text);
++        exit(EXIT_SUCCESS);
++      }
++    }
++    /* left-click on right arrow */
++    dc->w = textw(dc, ">");
++    dc->x = mw - dc->w;
++    if(next && ev->x >= dc->x && ev->x <= dc->x + dc->w) {
++      sel = curr = next;
++      calcoffsets();
++      drawmenu();
++      return;
++    }
++  }
++}
++

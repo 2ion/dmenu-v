@@ -24,7 +24,8 @@ struct Item {
 	Item *left, *right;
 };
 
-enum { Top, TopQuarter, Middle, Bottom }; /* bar position */
+enum { Top, TopQuarter, Middle, BottomQuarter, Bottom,
+  Left, Center, Right }; /* bar position */
 
 static void appenditem(Item *item, Item **list, Item **last);
 static void buttonpress(XEvent *e);
@@ -45,6 +46,8 @@ static void usage(void);
 static char text[BUFSIZ] = "";
 static int bh, mw, mh;
 static int inputw, promptw;
+static int position = Top;
+static int alignment = Left;
 static float wfrac = 1.0;
 static size_t cursor = 0;
 static const char *font = NULL;
@@ -57,7 +60,6 @@ static unsigned int lines = 0;
 static unsigned long normcol[ColLast];
 static unsigned long selcol[ColLast];
 static Atom clip, utf8;
-static int position = Top;
 static DC *dc;
 static Item *items = NULL;
 static Item *matches, *matchend;
@@ -87,12 +89,6 @@ main(int argc, char *argv[]) {
 			fstrncmp = strncasecmp;
 			fstrstr = cistrstr;
 		}
-    else if (!strcmp(argv[i], "-m")) { /* appears in the middle of the screen */
-      position = Middle;
-    }
-    else if (!strcmp(argv[i], "-q")) { /* appears in the upper quarter of the screen */
-      position = TopQuarter;
-    }
 		else if(i+1 == argc)
 			usage();
 		/* these options take one argument */
@@ -102,6 +98,20 @@ main(int argc, char *argv[]) {
 			prompt = argv[++i];
 		else if(!strcmp(argv[i], "-fn"))  /* font or font set */
 			font = argv[++i];
+    else if(!strcmp(argv[i], "-g")) { /* gravity */
+      char *a = argv[++i];
+      switch(a[0]) {
+        case 't': position = Top;           break;
+        case 'T': position = TopQuarter;    break;
+        case 'm': position = Middle;        break;
+        case 'B': position = BottomQuarter; break;
+        case 'b': position = Bottom;        break;
+      } switch(a[1]) {
+        case 'l': alignment = Left;         break;
+        case 'c': alignment = Center;       break;
+        case 'r': alignment = Right;        break;
+      }
+    }
 		else if(!strcmp(argv[i], "-nb"))  /* normal background color */
 			normbgcolor = argv[++i];
 		else if(!strcmp(argv[i], "-nf"))  /* normal foreground color */
@@ -580,13 +590,19 @@ setup(void) {
 					break;
 
 		mw = info[i].width * wfrac;
-		x = info[i].x_org + (wfrac == 1.0 ? 0 : 0.5 * (info[i].width - mw));
+    x = info[i].x_org;
+    switch(alignment) {
+      case Left:    x += 0;                           break;
+      case Center:  x += 0.5 * (info[i].width - mw);  break;
+      case Right:   x += info[i].width - mw;          break;
+    }
 		y = info[i].y_org;
     switch(position) {
-      case Top:         y += 0;                                 break;
-      case TopQuarter:  y += 0.5 * (0.5 * info[i].height - mh); break;
-      case Bottom:      y += info[i].height - mh;               break;
-      case Middle:      y += 0.5 * (info[i].height - mh);       break;
+      case Top:           y += 0;                                 break;
+      case TopQuarter:    y += 0.5 * (0.5 * info[i].height - mh); break;
+      case Middle:        y += 0.5 * (info[i].height - mh);       break;
+      case BottomQuarter: y += 0.5 * (1.5 * info[i].height - mh); break;
+      case Bottom:        y += info[i].height - mh;               break;
     }
 		XFree(info);
 	}
@@ -594,12 +610,17 @@ setup(void) {
 #endif
 	{
 		mw = DisplayWidth(dc->dpy, screen) * wfrac;
-		x = 0 + (wfrac == 1.0 ? 0 : 0.5 * (DisplayWidth(dc->dpy, screen) - mw));
+    switch(alignment) {
+      case Left:    x = 0;                                          break;
+      case Center:  x = 0.5 * (DisplayWidth(dc->dpy, screen) - mw); break;
+      case Right:   x = DisplayWidth(dc->dpy, screen) - mw;         break;
+    }
     switch(position) {
-      case Top:         y = 0;                                                  break;
-      case TopQuarter:  y = 0.5 * (0.5 * DisplayHeight(dc->dpy, screen) - mh);  break;
-      case Bottom:      y = DisplayHeight(dc->dpy, screen) - mh;                break;
-      case Middle:      y = 0.5 * (DisplayHeight(dc->dpy, screen) - mh);        break;
+      case Top:           y = 0;                                                  break;
+      case TopQuarter:    y = 0.5 * (0.5 * DisplayHeight(dc->dpy, screen) - mh);  break;
+      case Middle:        y = 0.5 * (DisplayHeight(dc->dpy, screen) - mh);        break;
+      case BottomQuarter: y = 0.5 * (1.5 * DisplayHeight(dc->dpy, screen) - mh);  break;
+      case Bottom:        y = DisplayHeight(dc->dpy, screen) - mh;                break;
     }
 	}
 	promptw = prompt ? textw(dc, prompt) : 0;
@@ -627,9 +648,8 @@ setup(void) {
 
 void
 usage(void) {
-	fputs("usage: dmenu [-b] [-f] [-i] [-l lines] [-m] [-p prompt] [-fn font]\n"
-	      "             [-nb color] [-nf color] [-q] [-sb color] [-sf color]\n"
-        "             [-v] [-w frac]\n", stderr);
+	fputs("usage: dmenu [-b] [-f] [-g grav] [-i] [-l lines] [-p prompt] [-fn font]\n"
+	      "             [-nb color] [-nf color] [-sb color] [-sf color] [-v] [-w frac]\n", stderr);
 	exit(EXIT_FAILURE);
 }
 

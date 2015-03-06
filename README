@@ -3,6 +3,49 @@ dmenu - dynamic menu
 dmenu is an efficient dynamic menu for X.
 
 
+dmenu-v
+-------
+
+dmenu-v adds two more switches and integrates the mouse support patch.
+dmenu-v can be used as a drop-in replacement for vanilla dmenu.
+
+The following options have been added:
+
+  -w factor
+
+limits the menu width by setting it to a fraction of the (Xinerama)
+screen width. Thus, 0.0 < factor <= 1.0.
+
+  -w 0.2
+
+will set the menu width to 1/5th of the screen width. The default factor
+is of course 1.0 (use the full screen width).
+
+  -g gravity
+
+makes the menu appear in different locations on the screen. The option
+argument is two-letter string
+
+  <vertical alignment><horizontal alignment>
+
+where the alignment codes are as follows:
+
+  +--------------------------------+
+  | tl            tc            tr |
+  |                                |
+  | Tl            Tc            Tr |
+  |                                |
+  | ml            mc            mr |
+  |                                |
+  | Bl            Bc            Br |
+  |                                |
+  | bl            bc            br |
+  +--------------------------------+
+
+You will get away with specifying only one or even zero letters in the
+argument string. The respective letters default to tl. The -b switch has
+been preserved for compatibility reasons; using it is equivalent to "-g bl".
+
 Requirements
 ------------
 In order to build dmenu you need the Xlib header files.

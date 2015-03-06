@@ -45,6 +45,7 @@ static void usage(void);
 static char text[BUFSIZ] = "";
 static int bh, mw, mh;
 static int inputw, promptw;
+static float wfrac = 1.0;
 static size_t cursor = 0;
 static const char *font = NULL;
 static const char *prompt = NULL;
@@ -109,6 +110,8 @@ main(int argc, char *argv[]) {
 			selbgcolor = argv[++i];
 		else if(!strcmp(argv[i], "-sf"))  /* selected foreground color */
 			selfgcolor = argv[++i];
+    else if(!strcmp(argv[i], "-w"))   /* set menu width to a fraction */
+      wfrac = strtof(argv[++i], NULL);
 		else
 			usage();
 
@@ -576,7 +579,8 @@ setup(void) {
 				if(INTERSECT(x, y, 1, 1, info[i]))
 					break;
 
-		x = info[i].x_org;
+		mw = info[i].width * wfrac;
+		x = info[i].x_org + (wfrac == 1.0 ? 0 : 0.5 * (info[i].width - mw));
 		y = info[i].y_org;
     switch(position) {
       case Top:         y += 0;                                 break;
@@ -584,20 +588,19 @@ setup(void) {
       case Bottom:      y += info[i].height - mh;               break;
       case Middle:      y += 0.5 * (info[i].height - mh);       break;
     }
-		mw = info[i].width;
 		XFree(info);
 	}
 	else
 #endif
 	{
-		x = 0;
+		mw = DisplayWidth(dc->dpy, screen) * wfrac;
+		x = 0 + (wfrac == 1.0 ? 0 : 0.5 * (DisplayWidth(dc->dpy, screen) - mw));
     switch(position) {
       case Top:         y = 0;                                                  break;
       case TopQuarter:  y = 0.5 * (0.5 * DisplayHeight(dc->dpy, screen) - mh);  break;
       case Bottom:      y = DisplayHeight(dc->dpy, screen) - mh;                break;
       case Middle:      y = 0.5 * (DisplayHeight(dc->dpy, screen) - mh);        break;
     }
-		mw = DisplayWidth(dc->dpy, screen);
 	}
 	promptw = prompt ? textw(dc, prompt) : 0;
 	inputw = MIN(inputw, mw/3);
@@ -625,7 +628,8 @@ setup(void) {
 void
 usage(void) {
 	fputs("usage: dmenu [-b] [-f] [-i] [-l lines] [-m] [-p prompt] [-fn font]\n"
-	      "             [-nb color] [-nf color] [-q] [-sb color] [-sf color] [-v]\n", stderr);
+	      "             [-nb color] [-nf color] [-q] [-sb color] [-sf color]\n"
+        "             [-v] [-w frac]\n", stderr);
 	exit(EXIT_FAILURE);
 }
 

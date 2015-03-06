@@ -5,7 +5,6 @@ dmenu is an efficient dynamic menu for X.
 
 dmenu-v
 -------
-
 dmenu-v adds two more switches and integrates the mouse support patch.
 dmenu-v can be used as a drop-in replacement for vanilla dmenu.
 
@@ -45,6 +44,7 @@ where the alignment codes are as follows:
 You will get away with specifying only one or even zero letters in the
 argument string. The respective letters default to tl. The -b switch has
 been preserved for compatibility reasons; using it is equivalent to "-g bl".
+
 
 Requirements
 ------------

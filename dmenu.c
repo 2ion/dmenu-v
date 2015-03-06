@@ -120,8 +120,11 @@ main(int argc, char *argv[]) {
       selbgcolor = argv[++i];
     else if(!strcmp(argv[i], "-sf"))  /* selected foreground color */
       selfgcolor = argv[++i];
-    else if(!strcmp(argv[i], "-w"))   /* set menu width to a fraction */
+    else if(!strcmp(argv[i], "-w")) { /* set menu width to a fraction */
       wfrac = strtof(argv[++i], NULL);
+      if(wfrac <= 0.0 || wfrac > 1.0)
+        wfrac = 1.0;
+    }
     else
       usage();
 

@@ -5,6 +5,8 @@ dmenu \- dynamic menu
 .B dmenu
 .RB [ \-b ]
 .RB [ \-f ]
+.RB [ \-g
+.IR gravity ]
 .RB [ \-i ]
 .RB [ \-l
 .IR lines ]
@@ -21,6 +23,8 @@ dmenu \- dynamic menu
 .RB [ \-sf
 .IR color ]
 .RB [ \-v ]
+.RB [ \-w 
+.IR factor ]
 .P
 .BR dmenu_run " ..."
 .SH DESCRIPTION
@@ -42,6 +46,13 @@ dmenu appears at the bottom of the screen.
 .B \-f
 dmenu grabs the keyboard before reading stdin.  This is faster, but will lock up
 X until stdin reaches end\-of\-file.
+.TP
+.BI \-g " gravity"
+dmenu appears at the indicated screen location.  Possible argument
+strings are listed in the section
+.SM
+.B ALIGNMENT CODES
+below).
 .TP
 .B \-i
 dmenu matches menu items case insensitively.
@@ -72,6 +83,11 @@ defines the selected foreground color.
 .TP
 .B \-v
 prints version information to stdout, then exits.
+.TP
+.BI \-w " factor"
+multiplies the default menu width, which is the screen width, by a
+floating point number which must be greater than zero and lower than or
+equal to one.
 .SH USAGE
 dmenu is completely controlled by the keyboard.  Items are selected using the
 arrow keys, page up, page down, home, and end.
@@ -160,6 +176,18 @@ Page up
 .TP
 M\-l
 Down
+.SH ALIGNMENT CODES
+  +--------------------------------+
+  | tl            tc            tr |
+  |                                |
+  | Tl            Tc            Tr |
+  |                                |
+  | ml            mc            mr |
+  |                                |
+  | Bl            Bc            Br |
+  |                                |
+  | bl            bc            br |
+  +--------------------------------+
 .SH SEE ALSO
 .IR dwm (1),
 .IR stest (1)

@@ -23,7 +23,7 @@ is of course 1.0 (use the full screen width).
   -g gravity
 
 makes the menu appear in different locations on the screen. The option
-argument is two-letter string
+argument is a two-letter string:
 
   <vertical alignment><horizontal alignment>
 

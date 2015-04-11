@@ -101,15 +101,16 @@ main(int argc, char *argv[]) {
     else if(!strcmp(argv[i], "-g")) { /* gravity */
       char *a = argv[++i];
       switch(a[0]) {
-        case 't': position = Top;           break;
-        case 'T': position = TopQuarter;    break;
-        case 'm': position = Middle;        break;
-        case 'B': position = BottomQuarter; break;
-        case 'b': position = Bottom;        break;
-      } switch(a[1]) {
-        case 'l': alignment = Left;         break;
-        case 'c': alignment = Center;       break;
-        case 'r': alignment = Right;        break;
+        case '\0':  usage();                  break;
+        case 't':   position = Top;           break;
+        case 'T':   position = TopQuarter;    break;
+        case 'm':   position = Middle;        break;
+        case 'B':   position = BottomQuarter; break;
+        case 'b':   position = Bottom;        break;
+      } switch(a[1]) { /* may be \0 */
+        case 'l':   alignment = Left;         break;
+        case 'c':   alignment = Center;       break;
+        case 'r':   alignment = Right;        break;
       }
     }
     else if(!strcmp(argv[i], "-nb"))  /* normal background color */
